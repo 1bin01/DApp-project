@@ -6,7 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract BalanceGame is Ownable {
     struct Vote {
         bool isOptionA; // A or B 중 하나를 선택
-        uint256 amount; // 투표 금액
+        uint256 optionAAmount; // A 선택지에 투표한 금액
+        uint256 optionBAmount; // B 선택지에 투표한 금액
     }
 
     struct Game {
@@ -17,8 +18,8 @@ contract BalanceGame is Ownable {
         uint256 createdAt;
         address creator;
         bool isActive;
-        uint256 optionAVotes;
-        uint256 optionBVotes;
+        uint256 optionAAmount;  // A 선택지에 투표된 총 금액
+        uint256 optionBAmount;  // B 선택지에 투표된 총 금액
         uint256 totalAmount;
     }
 
@@ -39,8 +40,8 @@ contract BalanceGame is Ownable {
             createdAt: block.timestamp,
             creator: msg.sender,
             isActive: true,
-            optionAVotes: 0,
-            optionBVotes: 0,
+            optionAAmount: 0,
+            optionBAmount: 0,
             totalAmount: 0
         }));
         
@@ -53,23 +54,22 @@ contract BalanceGame is Ownable {
         require(_gameId < games.length, "Game does not exist");
         require(games[_gameId].isActive, "Game is not active");
         require(msg.value > 0, "Must send some ETH to vote");
-        require(votes[_gameId][msg.sender].amount == 0, "Already voted");   // 중복 투표를 가능하게 할 것인가? <- 나중에 수정할 필요o
 
         Game storage game = games[_gameId];
+        Vote storage userVote = votes[_gameId][msg.sender];
         
         if (_isOptionA) {
-            game.optionAVotes += 1;
+            game.optionAAmount += msg.value;
+            userVote.optionAAmount += msg.value;
         } else {
-            game.optionBVotes += 1;
+            game.optionBAmount += msg.value;
+            userVote.optionBAmount += msg.value;
         }
         
-        game.totalAmount += msg.value;  // 게임에 걸린 전체 ETH 양
-        votes[_gameId][msg.sender] = Vote({ // 투표 상태 update
-            isOptionA: _isOptionA,
-            amount: msg.value
-        });
+        game.totalAmount += msg.value;
+        userVote.isOptionA = _isOptionA;  // 마지막 선택 저장
         
-        emit VoteCast(_gameId, msg.sender, _isOptionA, msg.value);  // 투표 이벤트 발생
+        emit VoteCast(_gameId, msg.sender, _isOptionA, msg.value);
     }
     
     // gameID를 통해 game을 반환
@@ -86,5 +86,31 @@ contract BalanceGame is Ownable {
     // gameID와 투표자를 통해 투표 기록을 반환
     function getVote(uint256 _gameId, address _voter) external view returns (Vote memory) {
         return votes[_gameId][_voter];
+    }
+
+    function getGameInEther(uint256 _gameId) external view returns (
+        string memory question,
+        string memory optionA,
+        string memory optionB,
+        uint256 createdAt,
+        address creator,
+        bool isActive,
+        uint256 optionAAmount,
+        uint256 optionBAmount,
+        uint256 totalAmount
+    ) {
+        require(_gameId < games.length, "Game does not exist");
+        Game memory game = games[_gameId];
+        return (
+            game.question,
+            game.optionA,
+            game.optionB,
+            game.createdAt,
+            game.creator,
+            game.isActive,
+            game.optionAAmount,
+            game.optionBAmount,
+            game.totalAmount
+        );
     }
 } 

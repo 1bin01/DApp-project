@@ -99,6 +99,65 @@ export const BALANCE_GAME_ABI = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "games",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "question",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "optionA",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "optionB",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createdAt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "isActive",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "optionAAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "optionBAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "_gameId",
         "type": "uint256"
       }
@@ -139,12 +198,12 @@ export const BALANCE_GAME_ABI = [
           },
           {
             "internalType": "uint256",
-            "name": "optionAVotes",
+            "name": "optionAAmount",
             "type": "uint256"
           },
           {
             "internalType": "uint256",
-            "name": "optionBVotes",
+            "name": "optionBAmount",
             "type": "uint256"
           },
           {
@@ -198,13 +257,77 @@ export const BALANCE_GAME_ABI = [
           },
           {
             "internalType": "uint256",
-            "name": "amount",
+            "name": "optionAAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "optionBAmount",
             "type": "uint256"
           }
         ],
         "internalType": "struct BalanceGame.Vote",
         "name": "",
         "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_gameId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getGameInEther",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "question",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "optionA",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "optionB",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createdAt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "isActive",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "optionAAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "optionBAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalAmount",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

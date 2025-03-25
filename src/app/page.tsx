@@ -20,12 +20,12 @@ export default function Home() {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <main className="min-h-screen bg-gray-900">
+        <main className="min-h-screen bg-slate-100">
           <div className="container mx-auto px-4 py-8">
             <div className="flex justify-end mb-8">
               <WalletConnect />
             </div>
-            <h1 className="text-4xl font-bold text-center mb-12 text-white"> BAY 밸런스 게임</h1>
+            <h1 className="text-4xl font-bold text-center mb-12 text-gray-800">BAY 밸런스 게임</h1>
             <CreateGame />
             <GameList />
           </div>
