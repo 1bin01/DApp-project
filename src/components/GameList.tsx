@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, usePublicClient } from 'wagmi';
-import { BALANCE_GAME_ABI } from '@/constants/abi';
+import { CONTRACT_ABI } from '@/constants/abi';
 import { BALANCE_GAME_ADDRESS } from '@/constants/addresses';
 import VoteButton from './VoteButton';
 import CreateGame from './CreateGame';
@@ -12,63 +12,98 @@ interface Game {
   optionA: string;
   optionB: string;
   createdAt: bigint;
+  endTime: bigint;  // 마감 시간 추가
   creator: `0x${string}`;
   isActive: boolean;
   optionAAmount: bigint;
   optionBAmount: bigint;
   totalAmount: bigint;
+  gameId: number; // 원래의 gameId를 저장
 }
 
 export default function GameList() {
   const [games, setGames] = useState<Game[]>([]);   // game list
   const [mounted, setMounted] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const publicClient = usePublicClient();
 
-  const { data: count } = useReadContract({ // contract를 프론트로 받아오기
-    address: BALANCE_GAME_ADDRESS,
-    abi: BALANCE_GAME_ABI,
-    functionName: 'getGamesCount',
-  });
+  const fetchGames = useCallback(async () => {
+    if (!publicClient) return;
 
-  const refreshGames = useCallback(async () => {
     try {
-      if (!count || !publicClient) return;
+      const gameCount = await publicClient.readContract({
+        address: BALANCE_GAME_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'getGamesCount',
+      }) as bigint;
 
-      const gamePromises = Array.from({ length: Number(count) }, (_, i) =>
-        publicClient.readContract({
-          address: BALANCE_GAME_ADDRESS,
-          abi: BALANCE_GAME_ABI,
-          functionName: 'getGame',
-          args: [BigInt(i)],
-        })
-      );
+      const gamePromises = Array.from({ length: Number(gameCount) }, async (_, index) => {
+        try {
+          const game = await publicClient.readContract({
+            address: BALANCE_GAME_ADDRESS,
+            abi: CONTRACT_ABI,
+            functionName: 'getGame',
+            args: [BigInt(index)],
+          }) as Game;
+
+          if (game.question === '') return null;
+          
+          // gameId를 추가
+          return {
+            ...game,
+            gameId: index
+          };
+        } catch (error) {
+          console.error(`Error fetching game ${index}:`, error);
+          return null;
+        }
+      });
 
       const games = await Promise.all(gamePromises);
-      // 총 이더 금액이 많은 순으로 정렬
-      const sortedGames = games.sort((a, b) => {
-        const totalAmountA = Number(a.totalAmount);
-        const totalAmountB = Number(b.totalAmount);
-        return totalAmountB - totalAmountA;
-      });
+      // null이 아닌 게임만 필터링하고 정렬
+      const sortedGames = games
+        .filter((game): game is Game => game !== null && game.question !== '')
+        .sort((a, b) => {
+          // 먼저 마감 여부로 정렬
+          const isAEnded = Number(a.endTime) < Math.floor(Date.now() / 1000);
+          const isBEnded = Number(b.endTime) < Math.floor(Date.now() / 1000);
+          
+          if (isAEnded !== isBEnded) {
+            return isAEnded ? 1 : -1; // 마감되지 않은 게임이 위로
+          }
+          
+          // 마감 여부가 같다면 총 금액으로 정렬
+          const totalAmountA = Number(a.totalAmount);
+          const totalAmountB = Number(b.totalAmount);
+          return totalAmountB - totalAmountA;
+        });
       setGames(sortedGames);
+      setIsLoading(false);
     } catch (error) {
-      console.error('게임 목록을 가져오는데 실패했습니다:', error);
+      console.error('Error fetching games:', error);
+      setIsLoading(false);
     }
-  }, [count, publicClient]);
+  }, [publicClient]);
 
   useEffect(() => {
     setMounted(true);
-    refreshGames();
-  }, [refreshGames]);
-
-  // 주기적으로 게임 정보 업데이트 (선택사항)
-  useEffect(() => {
-    const interval = setInterval(refreshGames, 5000); // 5초마다 업데이트
+    fetchGames();
+    
+    // 10초마다 게임 목록 새로고침
+    const interval = setInterval(fetchGames, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchGames]);
 
   if (!mounted) return null;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto mt-8 px-4">
@@ -87,48 +122,96 @@ export default function GameList() {
         </div>
       ) : (
         <div className="space-y-6">
-          {games.map((game, index) => (
-            <div key={index} className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-700 flex items-center gap-2">
-                  {index === 0 && '🥇 '}
-                  {index === 1 && '🥈 '}
-                  {index === 2 && '🥉 '}
-                  {game.question}
-                  {index === 0 && <span className="text-sm font-normal text-yellow-600 animate-pulse">인기 1위!</span>}
-                </h3>
-                <p className="text-indigo-600 font-semibold bg-indigo-50/80 px-4 py-2 rounded-full">
-                  총 {Number(game.totalAmount) === 0 ? "0" : (Number(game.totalAmount) / 10**18).toString().replace(/\.?0+$/, '')} ETH
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="p-5 bg-slate-50/80 backdrop-blur-sm rounded-xl border border-gray-200 hover:border-indigo-300 transition-colors duration-300">
-                  <div className="flex justify-between items-center mb-4">
-                    <p className="text-gray-700 font-bold text-lg">{game.optionA}</p>
-                    <p className="text-indigo-600 font-semibold">
-                      {Number(game.optionAAmount) === 0 ? "0" : (Number(game.optionAAmount) / 10**18).toString().replace(/\.?0+$/, '')} ETH
+          {games.map((game, index) => {
+            const isEnded = Number(game.endTime) < Math.floor(Date.now() / 1000);
+            const remainingTime = isEnded ? 0 : Number(game.endTime) - Math.floor(Date.now() / 1000);
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = remainingTime % 60;
+
+            return (
+              <div key={game.gameId} className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-700 flex items-center gap-2">
+                      {index === 0 && '🥇 '}
+                      {index === 1 && '🥈 '}
+                      {index === 2 && '🥉 '}
+                      {game.question}
+                      {index === 0 && <span className="text-sm font-normal text-yellow-600 animate-pulse">인기 1위!</span>}
+                    </h3>
+                    <p className={`text-sm mt-1 ${isEnded ? 'text-red-500' : 'text-green-500'}`}>
+                      {isEnded ? '마감된 게임' : `남은 시간: ${minutes}분 ${seconds}초`}
                     </p>
                   </div>
-                  <VoteButton gameId={BigInt(index)} option={true} />
-                </div>
-                <div className="p-5 bg-slate-50/80 backdrop-blur-sm rounded-xl border border-gray-200 hover:border-indigo-300 transition-colors duration-300">
-                  <div className="flex justify-between items-center mb-4">
-                    <p className="text-gray-700 font-bold text-lg">{game.optionB}</p>
-                    <p className="text-indigo-600 font-semibold">
-                      {Number(game.optionBAmount) === 0 ? "0" : (Number(game.optionBAmount) / 10**18).toString().replace(/\.?0+$/, '')} ETH
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-indigo-600">
+                      {Number(game.totalAmount) === 0 ? "0" : (Number(game.totalAmount) / 10**18).toString().replace(/\.?0+$/, '')} ETH
                     </p>
                   </div>
-                  <VoteButton gameId={BigInt(index)} option={false} />
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className={`p-5 backdrop-blur-sm rounded-xl border transition-all duration-300 ${
+                    Number(game.optionAAmount) > Number(game.optionBAmount)
+                      ? 'bg-blue-100/80 border-blue-300 hover:border-blue-400 shadow-md shadow-blue-100'
+                      : 'bg-slate-50/80 border-gray-200 hover:border-indigo-300'
+                  }`}>
+                    <div className="flex justify-between items-center mb-4">
+                      <p className={`text-gray-700 font-bold text-lg ${
+                        Number(game.optionAAmount) > Number(game.optionBAmount)
+                          ? 'text-blue-800'
+                          : ''
+                      }`}>
+                        {game.optionA}
+                        {Number(game.optionAAmount) > Number(game.optionBAmount) && (
+                          <span className="ml-2 text-blue-600 animate-pulse">✨</span>
+                        )}
+                      </p>
+                      <p className={`font-semibold ${
+                        Number(game.optionAAmount) > Number(game.optionBAmount)
+                          ? 'text-blue-600'
+                          : 'text-indigo-600'
+                      }`}>
+                        {Number(game.optionAAmount) === 0 ? "0" : (Number(game.optionAAmount) / 10**18).toString().replace(/\.?0+$/, '')} ETH
+                      </p>
+                    </div>
+                    <VoteButton gameId={BigInt(game.gameId)} option={true} disabled={isEnded} />
+                  </div>
+                  <div className={`p-5 backdrop-blur-sm rounded-xl border transition-all duration-300 ${
+                    Number(game.optionBAmount) > Number(game.optionAAmount)
+                      ? 'bg-red-100/80 border-red-300 hover:border-red-400 shadow-md shadow-red-100'
+                      : 'bg-slate-50/80 border-gray-200 hover:border-indigo-300'
+                  }`}>
+                    <div className="flex justify-between items-center mb-4">
+                      <p className={`text-gray-700 font-bold text-lg ${
+                        Number(game.optionBAmount) > Number(game.optionAAmount)
+                          ? 'text-red-800'
+                          : ''
+                      }`}>
+                        {game.optionB}
+                        {Number(game.optionBAmount) > Number(game.optionAAmount) && (
+                          <span className="ml-2 text-red-600 animate-pulse">✨</span>
+                        )}
+                      </p>
+                      <p className={`font-semibold ${
+                        Number(game.optionBAmount) > Number(game.optionAAmount)
+                          ? 'text-red-600'
+                          : 'text-indigo-600'
+                      }`}>
+                        {Number(game.optionBAmount) === 0 ? "0" : (Number(game.optionBAmount) / 10**18).toString().replace(/\.?0+$/, '')} ETH
+                      </p>
+                    </div>
+                    <VoteButton gameId={BigInt(game.gameId)} option={false} disabled={isEnded} />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <CreateGame
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={refreshGames}
+        onSuccess={fetchGames}
       />
     </div>
   );

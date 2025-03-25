@@ -4,7 +4,6 @@ import { WagmiProvider, createConfig, http } from 'wagmi';
 import { hardhat } from '@wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import WalletConnect from '@/components/WalletConnect';
-import CreateGame from '../components/CreateGame';
 import GameList from '@/components/GameList';
 
 const config = createConfig({
@@ -26,7 +25,6 @@ export default function Home() {
               <WalletConnect />
             </div>
             <h1 className="text-4xl font-bold text-center mb-12 text-gray-800">BAY 밸런스 게임</h1>
-            <CreateGame />
             <GameList />
           </div>
         </main>

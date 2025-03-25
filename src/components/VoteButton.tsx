@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWriteContract, useAccount, usePublicClient } from 'wagmi';
 // abi 받아오기
-import { BALANCE_GAME_ABI } from '@/constants/abi';
+import { CONTRACT_ABI } from '@/constants/abi';
 // contract address 받아오기
 import { BALANCE_GAME_ADDRESS } from '@/constants/addresses';
 import { parseEther } from 'viem';
@@ -11,9 +11,10 @@ import { parseEther } from 'viem';
 interface VoteButtonProps {
   gameId: bigint;
   option: boolean;
+  disabled?: boolean;
 }
 
-export default function VoteButton({ gameId, option }: VoteButtonProps) {
+export default function VoteButton({ gameId, option, disabled }: VoteButtonProps) {
   const [amount, setAmount] = useState('0.01'); // 기본 투표 금액을 0.01로 설정
   const [mounted, setMounted] = useState(false);
   const { address } = useAccount();
@@ -35,7 +36,7 @@ export default function VoteButton({ gameId, option }: VoteButtonProps) {
     try {
       const hash = await writeContract({
         address: BALANCE_GAME_ADDRESS,
-        abi: BALANCE_GAME_ABI,
+        abi: CONTRACT_ABI,
         functionName: 'vote',
         args: [gameId, option],
         value: parseEther(amount),
@@ -69,8 +70,14 @@ export default function VoteButton({ gameId, option }: VoteButtonProps) {
       />
       <button
         onClick={handleVote}
-        disabled={isPending}
-        className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        disabled={isPending || disabled}
+        className={`w-full py-2 px-4 rounded-md text-white font-medium transition-all duration-300 ${
+          disabled
+            ? 'bg-gray-400 cursor-not-allowed'
+            : option
+            ? 'bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 shadow-sm hover:shadow'
+            : 'bg-gradient-to-r from-red-400 to-red-500 hover:from-red-500 hover:to-red-600 shadow-sm hover:shadow'
+        }`}
       >
         {isPending ? '투표 중...' : option ? 'A 선택하기' : 'B 선택하기'}
       </button>

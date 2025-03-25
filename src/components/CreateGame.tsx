@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useWriteContract, useAccount } from 'wagmi';
-import { BALANCE_GAME_ABI } from '@/constants/abi';
+import { CONTRACT_ABI } from '@/constants/abi';
 import { BALANCE_GAME_ADDRESS } from '@/constants/addresses';
 
 interface CreateGameProps {
@@ -15,6 +15,7 @@ export default function CreateGame({ isOpen, onClose, onSuccess }: CreateGamePro
   const [question, setQuestion] = useState('');
   const [optionA, setOptionA] = useState('');
   const [optionB, setOptionB] = useState('');
+  const [duration, setDuration] = useState('30'); // 기본값 30분
   const [mounted, setMounted] = useState(false);
   const { address } = useAccount();
 
@@ -34,13 +35,14 @@ export default function CreateGame({ isOpen, onClose, onSuccess }: CreateGamePro
     try {
       await writeContract({
         address: BALANCE_GAME_ADDRESS,
-        abi: BALANCE_GAME_ABI,
+        abi: CONTRACT_ABI,
         functionName: 'createGame',
-        args: [question, optionA, optionB],
+        args: [question, optionA, optionB, BigInt(duration)],
       });
       setQuestion('');
       setOptionA('');
       setOptionB('');
+      setDuration('30');
       alert('게임 생성 트랜잭션이 전송되었습니다!');
       onSuccess?.();
       onClose();
@@ -108,6 +110,22 @@ export default function CreateGame({ isOpen, onClose, onSuccess }: CreateGamePro
               placeholder="두 번째 선택지를 입력하세요"
               required
             />
+          </div>
+          <div>
+            <label htmlFor="duration" className="block text-gray-600 font-medium mb-2">
+              마감 시간 (분)
+            </label>
+            <input
+              type="number"
+              id="duration"
+              min="1"
+              max="60"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md text-gray-700 bg-slate-50/80 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400"
+              required
+            />
+            <p className="text-sm text-gray-500 mt-1">1분에서 60분 사이로 설정해주세요</p>
           </div>
           <div className="flex gap-3">
             <button
