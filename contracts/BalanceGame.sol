@@ -29,6 +29,7 @@ contract BalanceGame is Ownable {
     
     event GameCreated(uint256 indexed gameId, string question, string optionA, string optionB, address creator, uint256 endTime);
     event VoteCast(uint256 indexed gameId, address indexed voter, bool isOptionA, uint256 amount);
+    event RewardClaimed(uint256 indexed gameId, address indexed winner, uint256 amount);
     
     constructor() Ownable(msg.sender) {}
     
@@ -126,5 +127,37 @@ contract BalanceGame is Ownable {
             game.optionBAmount,
             game.totalAmount
         );
+    }
+
+    // 마감된 게임의 승리자에게 보상을 지급하는 함수
+    function claimReward(uint256 _gameId) external {
+        require(_gameId < games.length, "Game does not exist");
+        require(block.timestamp > games[_gameId].endTime, "Game has not ended");
+        
+        Game storage game = games[_gameId];
+        Vote storage userVote = votes[_gameId][msg.sender];
+        
+        // 사용자가 투표하지 않았다면 보상 없음
+        require(userVote.optionAAmount > 0 || userVote.optionBAmount > 0, "No votes found");
+        
+        // 승리한 선택지 결정
+        bool isOptionAWinner = game.optionAAmount > game.optionBAmount;
+        
+        // 사용자가 승리한 선택지에 투표했는지 확인
+        require(userVote.isOptionA == isOptionAWinner, "Not a winner");
+        
+        // 보상 계산 (승리한 선택지의 총 금액에서 비율 계산)
+        uint256 totalWinningAmount = isOptionAWinner ? game.optionAAmount : game.optionBAmount;
+        uint256 userWinningAmount = isOptionAWinner ? userVote.optionAAmount : userVote.optionBAmount;
+        uint256 reward = (userWinningAmount * game.totalAmount) / totalWinningAmount;
+        
+        // 투표 기록 초기화 (중복 청구 방지)
+        votes[_gameId][msg.sender] = Vote(false, 0, 0);
+        
+        // 보상 지급
+        (bool success, ) = msg.sender.call{value: reward}("");
+        require(success, "Transfer failed");
+        
+        emit RewardClaimed(_gameId, msg.sender, reward);
     }
 } 

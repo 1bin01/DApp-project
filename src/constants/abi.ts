@@ -53,6 +53,19 @@ export const CONTRACT_ABI = [
         "type": "uint256"
       }
     ],
+    "name": "claimReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_gameId",
+        "type": "uint256"
+      }
+    ],
     "name": "getGame",
     "outputs": [
       {
@@ -299,6 +312,47 @@ export const CONTRACT_ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_gameId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_voter",
+        "type": "address"
+      }
+    ],
+    "name": "getVote",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "isOptionA",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "optionAAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "optionBAmount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct BalanceGame.Vote",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -364,6 +418,31 @@ export const CONTRACT_ABI = [
       }
     ],
     "name": "VoteCast",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "gameId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "winner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "RewardClaimed",
     "type": "event"
   }
 ] as const; 
