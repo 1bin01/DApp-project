@@ -177,7 +177,7 @@ export default function GameCard({ game, index }: GameCardProps) {
                 disabled={isPending}
                 className="w-full py-2 px-4 rounded-md text-white font-medium bg-green-500 hover:bg-green-600 transition-colors duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {isPending ? '보상 받는 중...' : `보상 받기 🎁 (${reward === 0 ? "0" : (reward / 10**18).toString().replace(/\.?0+$/, '')} ETH)`}
+                {isPending ? '보상 받는 중...' : `보상 받기 🎁 (${reward === 0 ? "0" : (reward / 10**18).toFixed(2)} ETH)`}
               </button>
             ) : (
               <div className="w-full py-2 px-4 rounded-md text-gray-500 text-center">
@@ -219,7 +219,7 @@ export default function GameCard({ game, index }: GameCardProps) {
                 disabled={isPending}
                 className="w-full py-2 px-4 rounded-md text-white font-medium bg-green-500 hover:bg-green-600 transition-colors duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {isPending ? '보상 받는 중...' : `보상 받기 🎁 (${reward === 0 ? "0" : (reward / 10**18).toString().replace(/\.?0+$/, '')} ETH)`}
+                {isPending ? '보상 받는 중...' : `보상 받기 🎁 (${reward === 0 ? "0" : (reward / 10**18).toFixed(2)} ETH)`}
               </button>
             ) : (
               <div className="w-full py-2 px-4 rounded-md text-gray-500 text-center">
